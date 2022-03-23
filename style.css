@@ -1,0 +1,171 @@
+@font-face {
+    font-family: 'bloodBorne';
+    src: url('fonts/Fleshandblood-MVA5x.ttf');
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+html {
+    font-size: 10px;
+    font-family: 'bloodBorne';
+    font-weight: 100;
+}
+body {
+    min-height: 100vh;
+    background-image: url('images/smoke.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: whitesmoke;
+    font-weight: 100;
+}
+header {
+    height: 18vh;
+    display: grid;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+header h1 {
+    display: block;
+    margin: auto;
+    font-size: 8rem;
+    font-weight: 100;
+}
+main {
+    min-height: calc(100vh - 28vh);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* background-color: rgba(0, 0, 0, 0.6); */
+    font-weight: 100;
+}
+.center-block-container {
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 5rem;
+    width: fit-content;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    border-radius: 3px;
+}
+.center-block {
+    display: flex;
+    flex-direction: column;
+    padding: 0rem 0rem 2rem 0rem;
+}
+.center-block label {
+    font-size: 4rem;
+}
+.center-block input {
+    padding: 7px;
+    font-size: 2rem;
+    border: none;
+    outline: none;
+}
+.center-block-container button {
+    font-size: 2.75rem;
+    padding: 5px 2rem;
+    cursor: pointer;
+    border: none;
+    background-color: white;
+    color: black;
+    transition: all 0.3s ease-in-out;
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: bold;
+}
+footer {
+    height: 10vh;
+    display: grid;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+footer h3 {
+    font-size: 3rem;
+    display: block;
+    margin: auto;
+    font-weight: 100;
+}
+input, button {
+    border-radius: 3px;
+}
+button:hover {
+    transform: scale(1.1);
+}
+
+/*      DOM Content        */
+#gameText {
+    font-size: 3.5rem;
+    color: white;
+    text-align: center;
+    margin-top: 1rem;
+    width: fit-content;
+    padding: 7px;
+    border-bottom: 3px solid white;
+}
+#gameboardContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 4rem;
+    width: 100%;
+}
+.gameboards {
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    background-color: rgba(0, 0, 0, 0.6);
+    column-gap: .4rem;
+    row-gap: .4rem;
+    padding: 5rem;
+    border-radius: 8px;
+    position: relative;
+}
+#computerGameboard:hover {
+    cursor: url('images/crosshair.png'), auto;
+}
+.cell {
+    width: 4rem;
+    height: 4rem;
+    background-color: #fff;
+    transition: all .3s ease-in-out;
+    position: relative;
+}
+#computerGameboard .cell:hover {
+    transform: scale(1.1);
+    background-color: rgba(173, 216, 230);
+}
+.cellLabel {
+    position: absolute;
+    top: -3rem;
+    left: 50%;
+    transform: translate(-50%, 0);
+    text-align: center;
+    font-size: 2rem;
+    color: white;
+}
+.cellNumber {
+    position: absolute;
+    left: -3rem;
+    top: 50%;
+    transform: translate(0, -50%);
+    text-align: center;
+    font-size: 2rem;
+    color: white;
+}
+
+.gameboards .A4 .cellNumber {
+    left: -3.25rem;
+}
+.gameboards .A10 .cellNumber {
+    left: -3.5rem;
+}
+.gameboardLabels {
+    position: absolute;
+    bottom: 0rem;
+    font-size: 3rem;
+    color: white;
+    width: 100%;
+    text-align: center;
+}
