@@ -25,9 +25,12 @@ function shipType(length) {
 }
 
 function destroyerExists() {
-    console.log('hello');
-    for (i = 0; i < player.gameboard.ships.length; i++) {
-        if (player.gameboard.ships[i].type == 'Destroyer') {
+    let obj = player;
+    if (player.gameboard.ships == 0) {
+        obj = computer;
+    }
+    for (i = 0; i < obj.gameboard.ships.length; i++) {
+        if (obj.gameboard.ships[i].type == 'Destroyer') {
             return true;
         }
     }
@@ -93,43 +96,57 @@ function createPlayer(name) {
    }
 }
 
-///////////////(Comment suggestions to be implemented directly above this)/////////////////////////
-//Perhaps create a second function like create player that is createComputerPlayer() which inherits
-//(continued...) a computer actions object that will have functions that makes playes automatically and randomly,
-//(continued...) such as making plays around hits on player ships, knowing not to hit the same place twice, etc.
+// (Comment suggestions to be implemented directly above this)
+// Perhaps create a second function like create player that is createComputerPlayer() which inherits
+// (continued...) a computer actions object that will have functions that makes playes automatically and randomly,
+// (continued...) such as making plays around hits on player ships, knowing not to hit the same place twice, etc.
 
-//////DOM SECTION////////
+// DOM SECTION///
 const startBtn = document.querySelector('#startBtn');
 startBtn.addEventListener('click', gameLoop);
 const nameInput = document.querySelector('#nameInput');
 nameInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && nameInput.value !== '') {
         startBtn.click();
     }
 });
+
 let player;
 let computer;
+
 function gameLoop() {
     const centerBlockContainer = document.querySelector('.center-block-container');
-    const playerName = document.querySelector('#nameInput').value;
+    const nameInput = document.querySelector('#nameInput');
+    const playerName = nameInput.value[0].toUpperCase() + nameInput.value.slice(1);
     player = createPlayer(playerName);
     computer = createPlayer('computer');
     console.log(computer);
     console.log(player);
     centerBlockContainer.remove();
-    renderGameText();
+    renderTextBox();
     renderGameboards(playerName);
-    ///////////////////////////////////////Continue Below/////////////////////////
-    placeShips();
-    
+    generateBtn();
+    placePlayerShips();
+    placeComputerShips();
 }
-function renderGameText() {
+
+function renderTextBox() {
     const main = document.querySelector('main');
     const gameText = document.createElement('p');
     gameText.id = 'gameText';
-    gameText.textContent = 'Place your ships!';
+    gameText.textContent = 'Place your Carrier (5 units)';
     main.appendChild(gameText);
 }
+function generateText(num) {
+    const gameText = document.querySelector('#gameText');
+    if (player.gameboard.ships.length < 5) {
+        gameText.textContent = `Place your ${shipType(num)} (${num} units)`;
+    }
+    else {
+        gameText.textContent = 'Attack the enemy ship!';
+    }
+}
+
 function renderGameboards(playerName) {
     const main = document.querySelector('main');
     const gameboardContainer = document.createElement('div');
@@ -182,54 +199,175 @@ function cellCreation(gameboard, array) {
     }
 }
 
-function placeShips() {
-    let num = 5;
-    const playerGameboardCells = document.querySelectorAll('#playerGameboard .cell');
-    playerGameboardCells.forEach((cell) => {
-        let indy = Array.prototype.indexOf.call(playerGameboardCells, cell);
-        let row = cell.classList[1].slice(1);
-        let invalid = false;
-        cell.addEventListener('mouseenter', () => { /////yooooooo
-            for (i = 0; i < num && num !== 1; i++) {
-                if (playerGameboardCells[indy + i].classList[1].slice(1) !== row) {
-                    invalid = true;
-                }
-            }
-            if (invalid) {
-                for (i = 0; i < num && num !== 1; i++) {
-                    playerGameboardCells[indy + i].style.backgroundColor = 'tomato';
-                }
-            }
-            else {
-                for (i = 0; i < num && num !== 1; i++) {
-                    playerGameboardCells[indy + i].style.backgroundColor = 'lightGreen';
-                }
-            }
-        });
-        cell.addEventListener('mouseout', () => {
-            let indy = Array.prototype.indexOf.call(playerGameboardCells, cell);
-            for (i = 0; i < num && num !== 1; i++) {
-                playerGameboardCells[indy + i].style.backgroundColor = 'white';
-            }
-        });
-        cell.addEventListener('click', () => {
-            if (!invalid && player.gameboard.ships.length < 5) {
-                let array = [];
-                for (i = 0; i < num && num !== 1; i++) {
-                    array.push(playerGameboardCells[indy + i].classList[1]);
-                    playerGameboardCells[indy + i].style.backgroundColor = 'white';
-                }
-                
-                player.gameboard.placeShip(array);
-                if (player.gameboard.ships.length == 3) {
-                    num = 3;
-                }
-                else {
-                    num -= 1;
-                }
-                console.log(player);
-            }
-        });
+let vert = 1;
+
+function generateBtn() {
+    const btnContainer = document.createElement('div');
+    btnContainer.id = 'btn-container';
+    const rotateBtn = document.createElement('button');
+    rotateBtn.id = 'rotate-btn';
+    rotateBtn.textContent = 'Rotate Ship';
+    rotateBtn.addEventListener('click', () => {
+       if (vert == 1) {
+           vert = 10;
+       }
+       else {
+           vert = 1;
+       }
     });
+
+    btnContainer.appendChild(rotateBtn);
+    const gameboardContainer = document.querySelector('#gameboardContainer');
+    gameboardContainer.appendChild(btnContainer);
 }
 
+
+function placePlayerShips() {
+    let num = 5;
+    let invalid = false;
+    const playerGameboardCells = document.querySelectorAll('#playerGameboard div.cell');
+    playerGameboardCells.forEach((cell) => {
+        cell.addEventListener('mouseenter', () => {
+            if (validityCheck(cell, num)) {
+                invalid = true;
+            }
+            highlight(cell, invalid, num);
+        });
+
+        cell.addEventListener('mouseout', () => {
+            unhighlight(cell, num);
+            invalid = false;
+        });
+
+        cell.addEventListener('click', () => {
+            if (!invalid && player.gameboard.ships.length < 5) {
+                if (markShip(cell, invalid, num)) {
+                    if (player.gameboard.ships.length == 3) {
+                        num = 3;
+                    }
+                    else {
+                        num -= 1;
+                    }
+                    if (player.gameboard.ships.length == 5) {
+                        const btnContainer = document.querySelector('#btn-container');
+                        btnContainer.remove();
+                    }
+                    generateText(num);
+                    console.log(num);
+                    console.log(player);
+                }
+            }
+        });
+       
+    });
+}
+/////////////////go back until vert is gone//////////////
+function validityCheck(cell, num) {
+    const playerGameboardCells = document.querySelectorAll('#playerGameboard .cell');
+    let indy = Array.prototype.indexOf.call(playerGameboardCells, cell);
+    let row = cell.classList[1].slice(1);
+    if (vert == 10) {
+        row = cell.classList[1].slice(0, 1);
+    }
+    let array = [];
+    for (i = 0; i < num && num !== 1; i++) {
+        if (playerGameboardCells[indy + i * vert] === undefined) {
+            return true;
+        }
+        else if (playerGameboardCells[indy + i * vert].classList[1].slice(1) !== row) {
+            if (vert == 1) {
+                return true;
+            }
+        }
+        array.push(playerGameboardCells[indy + i * vert].classList[1]);
+    }
+    if (stacked(array)) {
+        return true;
+    }
+}
+
+function stacked(array) {
+    let invalid = false;
+    array.forEach((element) => {
+        for(i = 0; i < player.gameboard.ships.length; i++) {
+            player.gameboard.ships[i].positions.forEach((position) => {
+                if (element == position) {
+                    invalid = true;
+                }
+            });
+        }
+    });
+    return invalid;
+}
+
+function highlight(cell, invalid, num) {
+    const playerGameboardCells = document.querySelectorAll('#playerGameboard .cell');
+    let indy = Array.prototype.indexOf.call(playerGameboardCells, cell);
+    if (invalid) {
+        for (i = 0; i < num && num !== 1; i++) {
+            if (playerGameboardCells[indy + i * vert] === undefined || playerGameboardCells[indy + i * vert].classList.contains('marked')) {
+                break;
+            }
+            else {
+                playerGameboardCells[indy + i * vert].style.backgroundColor = 'tomato';
+            }
+        }
+    }
+    else {
+        for (i = 0; i < num && num !== 1; i++) {
+            playerGameboardCells[indy + i * vert].style.backgroundColor = 'lightGreen';
+        }
+    }
+}
+
+function unhighlight(cell, num) {
+    const playerGameboardCells = document.querySelectorAll('#playerGameboard .cell');
+    let indy = Array.prototype.indexOf.call(playerGameboardCells, cell);
+    for (i = 0; i < num && num !== 1; i++) {
+        if (playerGameboardCells[indy + i * vert] === undefined || playerGameboardCells[indy + i * vert].classList.contains('marked')) {
+            break;
+        }
+        else {
+            playerGameboardCells[indy + i * vert].style.backgroundColor = 'white';
+        }
+    }
+}
+
+function markShip(cell, invalid, num) {
+    const playerGameboardCells = document.querySelectorAll('#playerGameboard .cell');
+    let indy = Array.prototype.indexOf.call(playerGameboardCells, cell);
+    if (!invalid) {
+        let array = [];
+        for (i = 0; i < num && num !== 1; i++) {
+            array.push(playerGameboardCells[indy + i * vert].classList[1]);
+            playerGameboardCells[indy + i * vert].classList.add('marked');
+            playerGameboardCells[indy + i * vert].style.backgroundColor = 'grey';
+        }
+        player.gameboard.placeShip(array);
+        return true;
+    } 
+}
+
+function placeComputerShips() {
+    let possibilities = [
+        {carrier: ['A3', 'A4', 'A5', 'A6', 'A7'], battlship: ['D2', 'E2', 'F2', 'G2'], destroyer: ['D8', 'E8', 'F8'], submarine: ['H5', 'H6', 'H7'], patrolBoat: ['F9', 'G9']},
+        {carrier: ['E10', 'F10', 'G10', 'H10', 'I10'], battlship: ['I3', 'I4', 'I5', 'I6'], destroyer: ['B2', 'C2', 'D2'], submarine: ['C5', 'D5', 'E5'], patrolBoat: ['A10', 'B10']},
+        {carrier: ['E6', 'E7', 'E8', 'E9', 'E10'], battlship: ['G9', 'H9', 'I9', 'J9'], destroyer: ['B2', 'B3', 'B4'], submarine: ['A10', 'B10', 'C10'], patrolBoat: ['H5', 'H6']},
+        {carrier: ['H4', 'H5', 'H6', 'H7', 'H8'], battlship: ['C4', 'C5', 'C6', 'C7'], destroyer: ['F1', 'G1', 'H1'], submarine: ['B2', 'C2', 'D2'], patrolBoat: ['A5', 'A6']},
+        {carrier: ['A2', 'A3', 'A4', 'A5', 'A6'], battlship: ['B1', 'C1', 'D1', 'E1'], destroyer: ['G3', 'G4', 'G5'], submarine: ['G10', 'H10', 'I10'], patrolBoat: ['C8', 'C9']},
+    ];
+
+    let num = generateRandomNumber();
+
+    Object.keys(possibilities[num]).forEach((key) => {
+        computer.gameboard.placeShip(possibilities[num][key]);
+    });
+
+    console.log(computer);
+}
+
+function generateRandomNumber() {
+    let min = Math.ceil(0);
+    let max = Math.floor(4);
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}

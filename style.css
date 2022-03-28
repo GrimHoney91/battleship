@@ -169,3 +169,18 @@ button:hover {
     width: 100%;
     text-align: center;
 }
+#btn-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+#rotate-btn {
+    padding: 1rem 2rem;
+    font-size: 3rem;
+    font-family: 'Times New Roman', Times, serif;
+    border: none;
+    transition: all .3s ease-in-out;
+    background-color: #fff;
+    cursor: pointer;
+}
