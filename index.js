@@ -41,6 +41,9 @@ let shipActions = {
         for (i = 0; i < this.positions.length; i++) {
             if (this.positions[i] == coordinates) {
                 this.positions.splice(i, 1);
+                if (this.positions.length === 0) {
+                    this.sunk = true;
+                }
             }
         }
     },
@@ -55,6 +58,7 @@ function createGameboard() {
     let gameboard = Object.create(gameboardActions);
     gameboard.ships = [];
     gameboard.missedShots = [];
+    gameboard.shotsHit = [];
     return gameboard;
 }
 
@@ -67,6 +71,7 @@ let gameboardActions = {
         for (i = 0; i < this.ships.length; i++) {
             if (this.ships[i].positions.includes(coordinates)) {
                 this.ships[i].hit(coordinates);
+                this.shotsHit.push(coordinates); 
             }
             else {
                 this.missedShots.push(coordinates);
@@ -81,10 +86,10 @@ let gameboardActions = {
            }
         }
         if (shipsSunk == this.ships.length) {
-            return 'Game Over';
+            return true;
         }
         else {
-            return 'Game On';
+            return false;
         }
     }
 };
@@ -137,13 +142,13 @@ function renderTextBox() {
     gameText.textContent = 'Place your Carrier (5 units)';
     main.appendChild(gameText);
 }
-function generateText(num) {
+function generateText(num, text) {
     const gameText = document.querySelector('#gameText');
     if (player.gameboard.ships.length < 5) {
         gameText.textContent = `Place your ${shipType(num)} (${num} units)`;
     }
     else {
-        gameText.textContent = 'Attack the enemy ship!';
+        gameText.textContent = text;
     }
 }
 
@@ -251,8 +256,9 @@ function placePlayerShips() {
                     if (player.gameboard.ships.length == 5) {
                         const btnContainer = document.querySelector('#btn-container');
                         btnContainer.remove();
+                        allowAttacks();
                     }
-                    generateText(num);
+                    generateText(num, text.attack);
                     console.log(num);
                     console.log(player);
                 }
@@ -357,17 +363,225 @@ function placeComputerShips() {
         {carrier: ['A2', 'A3', 'A4', 'A5', 'A6'], battlship: ['B1', 'C1', 'D1', 'E1'], destroyer: ['G3', 'G4', 'G5'], submarine: ['G10', 'H10', 'I10'], patrolBoat: ['C8', 'C9']},
     ];
 
-    let num = generateRandomNumber();
+    let num = generateRandomNumber(0, 4);
 
     Object.keys(possibilities[num]).forEach((key) => {
         computer.gameboard.placeShip(possibilities[num][key]);
+        possibilities[num][key].forEach((position) => {//////////also erase this when finished
+            document.querySelector(`#computerGameboard .${position}`).style.backgroundColor = 'grey'; ////////erase this when finished
+        });
     });
 
     console.log(computer);
 }
 
-function generateRandomNumber() {
-    let min = Math.ceil(0);
-    let max = Math.floor(4);
+function generateRandomNumber(num1, num2) {
+    let min = Math.ceil(num1);
+    let max = Math.floor(num2);
     return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function allowAttacks() {
+    let playerTurn = true;
+
+    const computerGameboardCells = document.querySelectorAll('#computerGameboard .cell');
+    computerGameboardCells.forEach((cell) => {
+        cell.addEventListener('click', () => {
+            let coordinates = cell.classList[1];
+            if (noRepeat(computer, coordinates) && playerTurn) {
+                computer.gameboard.receiveAttack(coordinates);
+                markGameboard(computer);
+                determineHit(player, coordinates);
+                playerTurn = false;
+                flowControl();
+                setTimeout(() => {
+                    if (!determineWinner()) {
+                        playerTurn = true;
+                    }
+                }, 3700);
+            }
+        });
+    });
+}
+
+function noRepeat(obj, coordinates) {
+    if (!obj.gameboard.missedShots.includes(coordinates) && !obj.gameboard.shotsHit.includes(coordinates)) {
+        console.log('strike');
+        return true;
+    }
+}
+
+function markGameboard(obj) {
+    let enemy;
+    if (obj.name == 'computer') {
+        enemy = obj.name;
+    }
+    else {
+        enemy = 'player';
+    }
+
+    obj.gameboard.missedShots.forEach((coordinate) => {
+        document.querySelector(`#${enemy}Gameboard .${coordinate}`).style.backgroundColor = 'tomato';
+    });
+    obj.gameboard.shotsHit.forEach((coordinate) => {
+        document.querySelector(`#${enemy}Gameboard .${coordinate}`).style.backgroundColor = 'lightGreen';
+    });
+}
+
+function performEnemyAttack() {
+    let coordinates = generatePlayerCoordinates();
+
+    while (!noRepeat(player, coordinates)) {
+        coordinates = generatePlayerCoordinates();
+    }
+
+    player.gameboard.receiveAttack(coordinates);
+    markGameboard(player);
+    determineHit(computer, coordinates);
+}
+function generatePlayerCoordinates() {
+    const playerGameboardCells = document.querySelectorAll(`#playerGameboard .cell`);
+    let randomInteger = generateRandomNumber(0, 99);
+    let coordinates = playerGameboardCells[randomInteger].classList[1];
+    return coordinates;
+}
+
+function determineHit(obj, coordinates) {
+    if (obj.name == 'computer') {
+        if (player.gameboard.shotsHit.includes(coordinates)) {
+            generateText(null, text.hitPlayer);
+        }
+        else if (player.gameboard.missedShots.includes(coordinates)) {
+            generateText(null, text.missedPlayer);
+        }
+    }
+    else {
+        if (computer.gameboard.shotsHit.includes(coordinates)) {
+            generateText(null, text.hitComputer);
+        }
+        else if (computer.gameboard.missedShots.includes(coordinates)) {
+            generateText(null, text.missedComputer);
+        }
+    }
+}
+
+let text = {
+    attack: 'Attack the enemy ship!',
+    hitComputer: 'You hit the enemy ship!' ,
+    missedComputer: 'You missed.',
+    playerShipsSunk: 'The enemy sunk all of your ships!',
+    playerWins: 'YOU WIN',
+
+    
+    enemyAttack: 'The enemy is preparing an attack...',
+    hitPlayer: 'The enemy hit your ship!',
+    missedPlayer: 'The enemy missed.',
+    computerShipsSunk: `You destroyed all of the enemy's ships!`,
+    computerWins: 'YOU LOSE'
+}
+
+function flowControl() {
+    if (!determineWinner()) {
+        setTimeout(() => {
+            generateText(null, text.enemyAttack);
+        }, 1000);
+        setTimeout(() => {
+            performEnemyAttack();
+        }, 2400);
+        setTimeout(() => {
+            if (!determineWinner()) {
+                generateText(null, text.attack);
+            }
+            else {
+                endGame();
+            }
+        }, 3600);
+    }
+    else {
+        endGame()
+    }
+}
+
+function determineWinner() {
+    if (player.gameboard.gameStatus()) {
+        generateText(null, text.playerShipsSunk);
+        return true;
+    }
+    else if (computer.gameboard.gameStatus()) {
+        generateText(null, text.computerShipsSunk);
+        return true;
+    }
+}
+
+function endGame() {
+    setTimeout(() => {
+        declareWinner();
+    }, 3500);
+}
+
+function declareWinner() {
+    const main = document.querySelector('main');
+    while (main.firstChild) {
+        main.firstChild.remove();
+    }
+
+    const endGameDiv = document.createElement('div');
+    endGameDiv.id = 'end-game-div';
+
+    const endGameText = document.createElement('p');
+    endGameText.id = 'end-game-text';
+
+    if (player.gameboard.gameStatus()) {
+        endGameText.textContent = text.computerWins;
+        endGameText.style.color = 'crimson';
+        endGameText.style.textShadow = '0 0 1.25rem crimson';
+        console.log('yo');
+    }
+    else if (computer.gameboard.gameStatus()) {
+        console.log('baby');
+        endGameText.textContent = text.playerWins;
+        endGameText.style.color = '#9FE2BF';
+        endGameText.style.textShadow = '0 0 1.25rem #9FE2BF';
+    }
+
+    const restartBtnContainer = document.createElement('div');
+    restartBtnContainer.id = 'restart-btn-container';
+
+    const restartBtn = document.createElement('button');
+    restartBtn.id = 'restart-btn';
+    restartBtn.textContent = 'Restart';
+    restartBtn.addEventListener('click', restartGame);
+
+    restartBtnContainer.appendChild(restartBtn);
+
+    endGameDiv.append(endGameText, restartBtnContainer);
+    main.appendChild(endGameDiv);
+}
+
+function restartGame() {
+    const main = document.querySelector('main');
+    const endGameDiv = document.querySelector('#end-game-div');
+    endGameDiv.remove();
+
+    const centerBlockContainer = document.createElement('div');
+    centerBlockContainer.classList.add('center-block-container');
+
+    const centerBlock = document.createElement('div');
+    centerBlock.classList.add('center-block');
+
+    const nameInputLabel = document.createElement('label');
+    nameInputLabel.id = 'name-input-label';
+    nameInputLabel.textContent = 'Enter Your Name';
+
+    nameInput.value = '';
+
+    const centerBlockBreak = document.createElement('br');
+
+    centerBlock.append(nameInputLabel, centerBlockBreak, nameInput);
+
+    const blockContainerBreak = document.createElement('br');
+
+    centerBlockContainer.append(centerBlock, blockContainerBreak, startBtn);
+
+    main.appendChild(centerBlockContainer);
 }
