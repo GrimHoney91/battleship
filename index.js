@@ -2,6 +2,7 @@ function createShip(coordinates) {
     let ship = Object.create(shipActions);
     ship.type = shipType(coordinates.length);
     ship.positions = coordinates;
+    ship.shotsHit = [];
     ship.sunk = false;
     return ship;
 }
@@ -41,6 +42,7 @@ let shipActions = {
         for (i = 0; i < this.positions.length; i++) {
             if (this.positions[i] == coordinates) {
                 this.positions.splice(i, 1);
+                this.shotsHit.push(coordinates);
                 if (this.positions.length === 0) {
                     this.sunk = true;
                 }
@@ -73,9 +75,9 @@ let gameboardActions = {
                 this.ships[i].hit(coordinates);
                 this.shotsHit.push(coordinates); 
             }
-            else {
-                this.missedShots.push(coordinates);
-            }
+        }
+        if (!this.shotsHit.includes(coordinates)) {
+            this.missedShots.push(coordinates);
         }
     },
     gameStatus() {
@@ -406,7 +408,6 @@ function allowAttacks() {
 
 function noRepeat(obj, coordinates) {
     if (!obj.gameboard.missedShots.includes(coordinates) && !obj.gameboard.shotsHit.includes(coordinates)) {
-        console.log('strike');
         return true;
     }
 }
@@ -438,18 +439,91 @@ function performEnemyAttack() {
     player.gameboard.receiveAttack(coordinates);
     markGameboard(player);
     determineHit(computer, coordinates);
+    generatePotentialHits();
+    generatePotentialHits();
+    console.log(coordinatesHit);
+    console.log(potentialHits);
 }
+
+let coordinatesHit = [];
+let potentialHits = [];
+
 function generatePlayerCoordinates() {
     const playerGameboardCells = document.querySelectorAll(`#playerGameboard .cell`);
     let randomInteger = generateRandomNumber(0, 99);
+
+    if (potentialHits.length == 1) {
+        randomInteger = potentialHits[0];
+    }
+    else if (potentialHits.length > 1) {
+        let randomIndex = generateRandomNumber(0, potentialHits.length - 1);
+        randomInteger = potentialHits[randomIndex];
+    } 
+
     let coordinates = playerGameboardCells[randomInteger].classList[1];
+
     return coordinates;
+}
+
+function generatePotentialHits() {
+    if (coordinatesHit.length > 0) {
+        const playerGameboardCells = document.querySelectorAll('#playerGameboard .cell');
+        const cell = document.querySelector(`#playerGameboard .${coordinatesHit[0]}`);
+        let index = Array.prototype.indexOf.call(playerGameboardCells, cell);
+        let array = [index + 10, index - 10, index + 1, index - 1];
+
+        for (i = 0; i < array.length; i++) {
+            if (playerGameboardCells[array[i]] !== undefined) {
+                let coordinates = playerGameboardCells[array[i]].classList[1];
+                if (i == 0 || i == 1) {
+                    if (player.gameboard.shotsHit.includes(coordinates)) {
+                        array.splice(2);
+                        break;
+                    }
+                }
+                else if (i == 2 || i == 3) {
+                    if (player.gameboard.shotsHit.includes(coordinates)) {
+                        array.splice(0, 2);
+                        break;
+                    }
+                }
+            }
+        }
+
+        let newArray = [];
+
+        for(i = 0; i < array.length; i++) {
+            if (playerGameboardCells[array[i]] !== undefined) {
+                let coordinates = playerGameboardCells[array[i]].classList[1];
+                if (noRepeat(player, coordinates)) {
+                    newArray.push(array[i]);
+                }
+            }
+        }
+
+        if (newArray.length == 0) {
+            coordinatesHit.splice(0, 1);
+        }
+
+        potentialHits = newArray;
+    }
+}
+
+function moveOn(coordinates) {
+    for(i = 0; i < player.gameboard.ships.length; i++) {
+        if (player.gameboard.ships[i].shotsHit.includes(coordinates) && player.gameboard.ships[i].sunk) {
+            coordinatesHit.splice(0);
+            potentialHits.splice(0);
+        }
+    }
 }
 
 function determineHit(obj, coordinates) {
     if (obj.name == 'computer') {
         if (player.gameboard.shotsHit.includes(coordinates)) {
-            generateText(null, text.hitPlayer);
+            generateSunkOrHitText(player, coordinates);
+            coordinatesHit.push(coordinates);
+            moveOn(coordinates);
         }
         else if (player.gameboard.missedShots.includes(coordinates)) {
             generateText(null, text.missedPlayer);
@@ -457,10 +531,39 @@ function determineHit(obj, coordinates) {
     }
     else {
         if (computer.gameboard.shotsHit.includes(coordinates)) {
-            generateText(null, text.hitComputer);
+            generateSunkOrHitText(computer, coordinates);
         }
         else if (computer.gameboard.missedShots.includes(coordinates)) {
             generateText(null, text.missedComputer);
+        }
+    }
+}
+
+function generateSunkOrHitText(obj, coordinates) {
+    let sunkText = false;
+    let shipType = '';
+    for (i = 0; i < obj.gameboard.ships.length; i++) {
+        if (obj.gameboard.ships[i].sunk && obj.gameboard.ships[i].shotsHit.includes(coordinates)) {
+            sunkText = true;
+            shipType = obj.gameboard.ships[i].type;
+            break;
+        }
+    }
+
+    if (sunkText) {
+        if (obj.name !== 'computer') {
+            generateText(null, text.computerSunkShip(shipType));
+        }
+        else {
+            generateText(null, text.playerSunkShip(shipType));
+        }
+    }
+    else {
+        if (obj.name !== 'computer') {
+            generateText(null, text.hitPlayer);
+        }
+        else {
+            generateText(null, text.hitComputer);
         }
     }
 }
@@ -471,13 +574,19 @@ let text = {
     missedComputer: 'You missed.',
     playerShipsSunk: 'The enemy sunk all of your ships!',
     playerWins: 'YOU WIN',
+    playerSunkShip: (shipType) => {
+        return `You sunk the enemy's ${shipType}!`;
+    },
 
     
     enemyAttack: 'The enemy is preparing an attack...',
     hitPlayer: 'The enemy hit your ship!',
     missedPlayer: 'The enemy missed.',
     computerShipsSunk: `You destroyed all of the enemy's ships!`,
-    computerWins: 'YOU LOSE'
+    computerWins: 'YOU LOSE',
+    computerSunkShip: (shipType) => {
+        return `The enemy sunk your ${shipType}!`;
+    },
 }
 
 function flowControl() {
