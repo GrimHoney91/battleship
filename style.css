@@ -221,3 +221,19 @@ button:hover {
 #restart-btn:hover {
     transform: scale(1.1);
 }
+
+#music {
+    background-color: rgb(0, 0, 0, 0.6);
+    width: 5rem;
+    height: 5rem;
+    position: absolute;
+    top: 16rem;
+    right: 3rem;
+    background-image: url('images/mute.png');
+    background-size: 3rem;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 2px solid white;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+}

@@ -1,3 +1,35 @@
+let audio = {
+    waves: new Audio('audio/waves.wav'),
+    music: new Audio('audio/music.mp3'),
+    key: new Audio('audio/key.wav'),
+    drum: new Audio('audio/start.wav'),
+    shipDrop: new Audio('audio/splash.wav'),
+    explosion: new Audio('audio/explosion.wav'),
+    sunk: new Audio('audio/sunk.wav'),
+    whoosh: new Audio('audio/whoosh.wav'),
+    win: new Audio('audio/lose2.wav'),
+    lose: new Audio('audio/lose.wav')
+}
+audio.music.volume = 0.15;
+audio.music.loop = true;
+audio.explosion.volume = 0.5;
+audio.shipDrop.volume = 0.2;
+audio.whoosh.volume = 0.6;
+audio.drum.volume = 0.8;
+audio.key.volume = 0.6;
+
+const musicBtn = document.querySelector('#music');
+musicBtn.addEventListener('click', () => {
+    if (audio.music.paused) {
+        audio.music.play();
+        musicBtn.style.backgroundImage = "url('images/play.png')";
+    }
+    else {
+        audio.music.pause();
+        musicBtn.style.backgroundImage = "url('images/mute.png')";
+    }
+});
+
 function createShip(coordinates) {
     let ship = Object.create(shipActions);
     ship.type = shipType(coordinates.length);
@@ -110,11 +142,27 @@ function createPlayer(name) {
 
 // DOM SECTION///
 const startBtn = document.querySelector('#startBtn');
-startBtn.addEventListener('click', gameLoop);
+startBtn.addEventListener('click', () => {
+    if (nameInput.value !== '') {
+        audio.music.volume = 0.2;
+        audio.drum.play();
+        gameLoop();
+        setTimeout(() => {
+            audio.waves.play();
+            audio.waves.volume = 0.2;
+        }, 500);
+        audio.waves.loop = true;
+    }
+});
 const nameInput = document.querySelector('#nameInput');
 nameInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' && nameInput.value !== '') {
         startBtn.click();
+    }
+    else {
+        audio.key.pause();
+        audio.key.currentTime = 0;
+        audio.key.play();
     }
 });
 
@@ -352,6 +400,9 @@ function markShip(cell, invalid, num) {
             playerGameboardCells[indy + i * vert].style.backgroundColor = 'grey';
         }
         player.gameboard.placeShip(array);
+        audio.shipDrop.pause();
+        audio.shipDrop.currentTime = 0;
+        audio.shipDrop.play();
         return true;
     } 
 }
@@ -369,9 +420,6 @@ function placeComputerShips() {
 
     Object.keys(possibilities[num]).forEach((key) => {
         computer.gameboard.placeShip(possibilities[num][key]);
-        possibilities[num][key].forEach((position) => {//////////also erase this when finished
-            document.querySelector(`#computerGameboard .${position}`).style.backgroundColor = 'grey'; ////////erase this when finished
-        });
     });
 
     console.log(computer);
@@ -400,7 +448,7 @@ function allowAttacks() {
                     if (!determineWinner()) {
                         playerTurn = true;
                     }
-                }, 3700);
+                }, 3650);
             }
         });
     });
@@ -527,6 +575,9 @@ function determineHit(obj, coordinates) {
         }
         else if (player.gameboard.missedShots.includes(coordinates)) {
             generateText(null, text.missedPlayer);
+            audio.whoosh.pause();
+            audio.whoosh.currentTime = 0;
+            audio.whoosh.play();
         }
     }
     else {
@@ -535,6 +586,9 @@ function determineHit(obj, coordinates) {
         }
         else if (computer.gameboard.missedShots.includes(coordinates)) {
             generateText(null, text.missedComputer);
+            audio.whoosh.pause();
+            audio.whoosh.currentTime = 0;
+            audio.whoosh.play();
         }
     }
 }
@@ -557,6 +611,10 @@ function generateSunkOrHitText(obj, coordinates) {
         else {
             generateText(null, text.playerSunkShip(shipType));
         }
+        audio.sunk.volume = 0.3;
+        audio.sunk.pause();
+        audio.sunk.currentTime = 0;
+        audio.sunk.play();
     }
     else {
         if (obj.name !== 'computer') {
@@ -565,6 +623,9 @@ function generateSunkOrHitText(obj, coordinates) {
         else {
             generateText(null, text.hitComputer);
         }
+        audio.explosion.pause();
+        audio.explosion.currentTime = 0;
+        audio.explosion.play();
     }
 }
 
@@ -645,12 +706,14 @@ function declareWinner() {
         endGameText.style.color = 'crimson';
         endGameText.style.textShadow = '0 0 1.25rem crimson';
         console.log('yo');
+        audio.lose.play();
     }
     else if (computer.gameboard.gameStatus()) {
         console.log('baby');
         endGameText.textContent = text.playerWins;
         endGameText.style.color = '#9FE2BF';
         endGameText.style.textShadow = '0 0 1.25rem #9FE2BF';
+        audio.win.play();
     }
 
     const restartBtnContainer = document.createElement('div');
@@ -665,6 +728,8 @@ function declareWinner() {
 
     endGameDiv.append(endGameText, restartBtnContainer);
     main.appendChild(endGameDiv);
+    audio.waves.pause();
+    audio.music.pause();
 }
 
 function restartGame() {
@@ -692,5 +757,5 @@ function restartGame() {
 
     centerBlockContainer.append(centerBlock, blockContainerBreak, startBtn);
 
-    main.appendChild(centerBlockContainer);
+    main.append(centerBlockContainer, musicBtn);
 }
